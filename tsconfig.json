@@ -1,0 +1,21 @@
+{
+"ts-node": {
+  "transpileOnly": true,
+
+  "files": true,
+
+}
+  ,
+  "compilerOptions": {
+    "outDir": "dist",
+    "module": "commonjs",
+    "target": "es2019",
+    "esModuleInterop": true,
+    "rootDir": "src",
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["*"]
+    }
+  },
+  "include": ["src"]
+}
