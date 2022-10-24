@@ -1,27 +1,52 @@
+import {User} from "@/domain/entities";
+import {getRedis, setRedis} from "@/redis";
 import {io} from "../main/config/app";
 
-interface User {
+interface UserList {
   userID: string;
   socketID: string;
 }
 
-const usersOnline: User[] = [];
+const usersOnline: UserList[] = [];
 
 io.on("connection", socket => {
   io.to(socket.id).emit("Welcome", "Welcome to the server");
-  io.to(socket.id).emit("socketID", socket.id);
-  console.log("Connection");
-  socket.on("userconnect", data => {
-    //     console.log({data, socket: socket.id});
 
+  socket.on("userconnect", async data => {
     const filter = usersOnline.find(user => user.userID === data.userID);
-
-    if (filter) {
-      filter.socketID = socket.id;
+    const redis = await getRedis(data.userID);
+    if (redis) {
+      if (filter) {
+        filter.socketID = socket.id;
+      }
+      await setRedis(data.userID, new User(data.userID, socket.id));
     } else {
-      usersOnline.push({socketID: socket.id, userID: data.userID});
+      usersOnline.push(new User(data.userID, socket.id));
+      await setRedis(data.userID, new User(data.userID, socket.id));
     }
+    console.log(data);
+  });
 
-    console.log(usersOnline);
+  socket.on("join", async data => {
+    socket.join(data.room);
+    await setRedis(data.room, {
+      room: data.room,
+      users: data.room.split("+"),
+    });
+  });
+
+  socket.on("leave", data => {
+    socket.leave(data.room);
+  });
+
+  socket.on("message", data => {
+    console.log(data);
+
+    io.to(data.room).emit("message-in-room", {
+      id: Math.random().toString(),
+      sentAt: new Date(),
+      content: data.message,
+      from: data.from,
+    });
   });
 });
