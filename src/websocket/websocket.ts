@@ -1,5 +1,3 @@
-import {User} from "@/domain/entities";
-import {getRedis, setRedis} from "@/redis";
 import {io} from "../main/config/app";
 
 interface UserList {
@@ -9,44 +7,28 @@ interface UserList {
 
 const usersOnline: UserList[] = [];
 
-io.on("connection", socket => {
-  io.to(socket.id).emit("Welcome", "Welcome to the server");
-
-  socket.on("userconnect", async data => {
-    const filter = usersOnline.find(user => user.userID === data.userID);
-    const redis = await getRedis(data.userID);
-    if (redis) {
-      if (filter) {
-        filter.socketID = socket.id;
-      }
-      await setRedis(data.userID, new User(data.userID, socket.id));
-    } else {
-      usersOnline.push(new User(data.userID, socket.id));
-      await setRedis(data.userID, new User(data.userID, socket.id));
-    }
-    console.log(data);
-  });
+io.on("connect", socket => {
+  console.log(socket.handshake.auth.userID);
 
   socket.on("join", async data => {
     socket.join(data.room);
-    await setRedis(data.room, {
-      room: data.room,
-      users: data.room.split("+"),
-    });
   });
 
   socket.on("leave", data => {
     socket.leave(data.room);
+    socket.leave(data.room2);
+    io.in(socket.id).socketsLeave([data.room, data.room2]);
   });
 
-  socket.on("message", data => {
+  socket.on("private message", async data => {
     console.log(data);
-
-    io.to(data.room).emit("message-in-room", {
+    io.to(data.room).emit("private message", {
       id: Math.random().toString(),
-      sentAt: new Date(),
-      content: data.message,
+      room: data.room,
       from: data.from,
+      to: data.to,
+      content: data.message,
+      sentAt: new Date(),
     });
   });
 });
