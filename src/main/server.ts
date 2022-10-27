@@ -5,6 +5,6 @@ import {serverHTTP} from "./config";
 
 const PORT = process.env.PORT ? process.env.PORT : 5000;
 
-serverHTTP.listen(PORT, () =>
-  console.log(` Server listening on PORT => ${PORT}`),
-);
+serverHTTP.listen(5000, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
